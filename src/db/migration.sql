@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS feature_flags (
+    id SERIAL PRIMARY KEY,
+    flag_name VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    is_enabled BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
