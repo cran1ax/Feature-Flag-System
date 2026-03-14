@@ -1,0 +1,85 @@
+const FeatureFlag = require("../models/featureFlag");
+
+// POST /api/flags
+exports.createFlag = async (req, res) => {
+  try {
+    const { flag_name, description, is_enabled } = req.body;
+
+    if (!flag_name) {
+      return res.status(400).json({ error: "flag_name is required" });
+    }
+
+    const flag = await FeatureFlag.create({ flag_name, description, is_enabled });
+    res.status(201).json(flag);
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: `Flag '${req.body.flag_name}' already exists` });
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// GET /api/flags
+exports.getAllFlags = async (req, res) => {
+  try {
+    const flags = await FeatureFlag.findAll();
+    res.json(flags);
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// GET /api/flags/:name
+exports.getFlagByName = async (req, res) => {
+  try {
+    const flag = await FeatureFlag.findByName(req.params.name);
+
+    if (!flag) {
+      return res.status(404).json({ error: `Flag '${req.params.name}' not found` });
+    }
+
+    res.json(flag);
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// PUT /api/flags/:name
+exports.updateFlag = async (req, res) => {
+  try {
+    const { description, is_enabled } = req.body;
+    const fields = {};
+
+    if (description !== undefined) fields.description = description;
+    if (is_enabled !== undefined) fields.is_enabled = is_enabled;
+
+    if (Object.keys(fields).length === 0) {
+      return res.status(400).json({ error: "No valid fields to update" });
+    }
+
+    const flag = await FeatureFlag.update(req.params.name, fields);
+
+    if (!flag) {
+      return res.status(404).json({ error: `Flag '${req.params.name}' not found` });
+    }
+
+    res.json(flag);
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// DELETE /api/flags/:name
+exports.deleteFlag = async (req, res) => {
+  try {
+    const flag = await FeatureFlag.delete(req.params.name);
+
+    if (!flag) {
+      return res.status(404).json({ error: `Flag '${req.params.name}' not found` });
+    }
+
+    res.json({ message: `Flag '${req.params.name}' deleted`, flag });
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
