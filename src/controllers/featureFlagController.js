@@ -1,4 +1,7 @@
 const FeatureFlag = require("../models/featureFlag");
+const redisClient = require("../config/redis");
+
+const CACHE_TTL = 60; // seconds
 
 // POST /api/flags
 exports.createFlag = async (req, res) => {
@@ -29,14 +32,26 @@ exports.getAllFlags = async (req, res) => {
   }
 };
 
-// GET /api/flags/:name
+// GET /api/flags/:name  (cache-aside)
 exports.getFlagByName = async (req, res) => {
   try {
+    const cacheKey = `flag:${req.params.name}`;
+
+    // 1. Check Redis cache
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
+    // 2. Cache miss — query PostgreSQL
     const flag = await FeatureFlag.findByName(req.params.name);
 
     if (!flag) {
       return res.status(404).json({ error: `Flag '${req.params.name}' not found` });
     }
+
+    // 3. Store in Redis with TTL
+    await redisClient.set(cacheKey, JSON.stringify(flag), { EX: CACHE_TTL });
 
     res.json(flag);
   } catch (err) {
@@ -44,7 +59,7 @@ exports.getFlagByName = async (req, res) => {
   }
 };
 
-// PUT /api/flags/:name
+// PUT /api/flags/:name  (update cache after write)
 exports.updateFlag = async (req, res) => {
   try {
     const { description, is_enabled } = req.body;
@@ -63,13 +78,17 @@ exports.updateFlag = async (req, res) => {
       return res.status(404).json({ error: `Flag '${req.params.name}' not found` });
     }
 
+    // Update Redis cache with fresh data
+    const cacheKey = `flag:${req.params.name}`;
+    await redisClient.set(cacheKey, JSON.stringify(flag), { EX: CACHE_TTL });
+
     res.json(flag);
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// DELETE /api/flags/:name
+// DELETE /api/flags/:name  (invalidate cache)
 exports.deleteFlag = async (req, res) => {
   try {
     const flag = await FeatureFlag.delete(req.params.name);
@@ -77,6 +96,9 @@ exports.deleteFlag = async (req, res) => {
     if (!flag) {
       return res.status(404).json({ error: `Flag '${req.params.name}' not found` });
     }
+
+    // Remove from Redis cache
+    await redisClient.del(`flag:${req.params.name}`);
 
     res.json({ message: `Flag '${req.params.name}' deleted`, flag });
   } catch (err) {
