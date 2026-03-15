@@ -1,12 +1,12 @@
 const pool = require("../config/db");
 
 const FeatureFlag = {
-  async create({ flag_name, description, is_enabled = false }) {
+  async create({ flag_name, description, is_enabled = false, rollout_percentage = 0, targeted_users = [] }) {
     const result = await pool.query(
-      `INSERT INTO feature_flags (flag_name, description, is_enabled)
-       VALUES ($1, $2, $3)
+      `INSERT INTO feature_flags (flag_name, description, is_enabled, rollout_percentage, targeted_users)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [flag_name, description, is_enabled]
+      [flag_name, description, is_enabled, rollout_percentage, targeted_users]
     );
     return result.rows[0];
   },

@@ -3,14 +3,14 @@ const path = require("path");
 const pool = require("../config/db");
 
 async function runMigration() {
-  const sql = fs.readFileSync(
-    path.join(__dirname, "migration.sql"),
-    "utf-8"
-  );
+  const migrations = ["migration.sql", "add_rollout_fields.sql"];
 
   try {
-    await pool.query(sql);
-    console.log("Migration completed successfully");
+    for (const file of migrations) {
+      const sql = fs.readFileSync(path.join(__dirname, file), "utf-8");
+      await pool.query(sql);
+      console.log(`Migration '${file}' completed successfully`);
+    }
   } catch (err) {
     console.error("Migration failed:", err.message);
   } finally {
