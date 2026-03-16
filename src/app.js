@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 require("dotenv").config();
 
 const featureFlagRoutes = require("./routes/featureFlagRoutes");
@@ -8,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "../public")));
 
 // Routes
 app.use("/api/flags", featureFlagRoutes);

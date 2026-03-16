@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feature Flags — Admin Dashboard</title>
+  <meta name="description" content="Admin dashboard for managing feature flags, rollout percentages, and targeted users.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #0f111a;
+      --bg-secondary: #1a1d2e;
+      --bg-card: #1e2235;
+      --bg-hover: #252a40;
+      --bg-input: #141725;
+      --border: #2a2f45;
+      --border-focus: #6366f1;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.15);
+      --green: #22c55e;
+      --green-glow: rgba(34, 197, 94, 0.15);
+      --red: #ef4444;
+      --red-glow: rgba(239, 68, 68, 0.15);
+      --orange: #f59e0b;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.3);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-left { display: flex; align-items: center; gap: 0.75rem; }
+
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .header h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-primary), var(--accent-hover));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-right { display: flex; align-items: center; gap: 0.75rem; }
+
+    .stat-badge {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+
+    .stat-badge .count {
+      color: var(--accent-hover);
+      font-weight: 600;
+    }
+
+    /* ─── Main ─── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* ─── Create Form ─── */
+    .create-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+    }
+
+    .create-section h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .form-group input, .form-group textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.85rem;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.88rem;
+      transition: border-color var(--transition);
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group textarea:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-group textarea { resize: vertical; min-height: 60px; }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      padding: 0.6rem 1.4rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      color: #fff;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid transparent;
+      padding: 0.4rem 0.7rem;
+      font-size: 0.8rem;
+    }
+
+    .btn-danger:hover {
+      background: var(--red-glow);
+      border-color: var(--red);
+    }
+
+    /* ─── Table ─── */
+    .table-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: var(--bg-hover); }
+
+    .flag-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-family: 'SFMono-Regular', 'Consolas', monospace;
+      font-size: 0.85rem;
+    }
+
+    .flag-desc {
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ─── Toggle Switch ─── */
+    .toggle {
+      position: relative;
+      width: 44px; height: 24px;
+      cursor: pointer;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle .slider {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      transition: all var(--transition);
+    }
+
+    .toggle .slider::before {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 2px; top: 2px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      transition: all var(--transition);
+    }
+
+    .toggle input:checked + .slider {
+      background: var(--green);
+      border-color: var(--green);
+      box-shadow: 0 0 12px var(--green-glow);
+    }
+
+    .toggle input:checked + .slider::before {
+      transform: translateX(20px);
+      background: #fff;
+    }
+
+    /* ─── Rollout Slider ─── */
+    .rollout-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 140px;
+    }
+
+    .rollout-control input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      background: var(--bg-input);
+      border-radius: 3px;
+      outline: none;
+      border: 1px solid var(--border);
+    }
+
+    .rollout-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--accent-glow);
+      transition: transform var(--transition);
+    }
+
+    .rollout-control input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .rollout-value {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--accent-hover);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ─── Targeted Users ─── */
+    .users-cell {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      max-width: 180px;
+    }
+
+    .user-tag {
+      background: var(--accent-glow);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--accent-hover);
+      padding: 0.15rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+
+    .no-users {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-style: italic;
+    }
+
+    /* ─── Empty State ─── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+
+    .empty-state .icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* ─── Toast ─── */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem 1rem;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      box-shadow: var(--shadow);
+      animation: slideIn 0.3s ease-out;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error { border-left: 3px solid var(--red); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .form-grid { grid-template-columns: 1fr; }
+      .header { padding: 1rem; }
+      .table-wrapper { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">⚑</div>
+      <h1>Feature Flags</h1>
+    </div>
+    <div class="header-right">
+      <div class="stat-badge">
+        Total: <span class="count" id="totalCount">0</span>
+      </div>
+      <div class="stat-badge">
+        Active: <span class="count" id="activeCount">0</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Create Flag Form -->
+    <section class="create-section">
+      <h2>✦ Create New Flag</h2>
+      <form id="createForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="flagName">Flag Name</label>
+            <input type="text" id="flagName" placeholder="e.g. dark_mode" required>
+          </div>
+          <div class="form-group">
+            <label for="flagRollout">Rollout %</label>
+            <input type="number" id="flagRollout" min="0" max="100" value="0" placeholder="0-100">
+          </div>
+          <div class="form-group">
+            <label for="flagDesc">Description</label>
+            <input type="text" id="flagDesc" placeholder="What does this flag control?">
+          </div>
+          <div class="form-group">
+            <label for="flagUsers">Targeted Users (comma-separated)</label>
+            <input type="text" id="flagUsers" placeholder="e.g. user_1, user_vip">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">＋ Create Flag</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Flags Table -->
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Flag Name</th>
+            <th>Description</th>
+            <th>Enabled</th>
+            <th>Rollout %</th>
+            <th>Targeted Users</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="flagsTableBody">
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <div class="icon">⚑</div>
+                <p>Loading flags...</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API_BASE = "/api/flags";
+
+    // ─── Toast Notifications ───
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.textContent = type === "success" ? `✓ ${message}` : `✗ ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // ─── Fetch & Render Flags ───
+    async function loadFlags() {
+      try {
+        const res = await fetch(API_BASE);
+        const flags = await res.json();
+        renderFlags(flags);
+        updateStats(flags);
+      } catch (err) {
+        showToast("Failed to load flags", "error");
+      }
+    }
+
+    function updateStats(flags) {
+      document.getElementById("totalCount").textContent = flags.length;
+      document.getElementById("activeCount").textContent = flags.filter(f => f.is_enabled).length;
+    }
+
+    function renderFlags(flags) {
+      const tbody = document.getElementById("flagsTableBody");
+
+      if (flags.length === 0) {
+        tbody.innerHTML = `
+          <tr><td colspan="6">
+            <div class="empty-state">
+              <div class="icon">⚑</div>
+              <p>No feature flags yet. Create your first one above.</p>
+            </div>
+          </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = flags.map(flag => `
+        <tr>
+          <td><span class="flag-name">${escapeHtml(flag.flag_name)}</span></td>
+          <td><span class="flag-desc" title="${escapeHtml(flag.description || '')}">${escapeHtml(flag.description || "—")}</span></td>
+          <td>
+            <label class="toggle">
+              <input type="checkbox" ${flag.is_enabled ? "checked" : ""}
+                onchange="toggleFlag('${escapeHtml(flag.flag_name)}', this.checked)">
+              <span class="slider"></span>
+            </label>
+          </td>
+          <td>
+            <div class="rollout-control">
+              <input type="range" min="0" max="100" value="${flag.rollout_percentage || 0}"
+                onchange="updateRollout('${escapeHtml(flag.flag_name)}', this.value)"
+                oninput="this.nextElementSibling.textContent = this.value + '%'">
+              <span class="rollout-value">${flag.rollout_percentage || 0}%</span>
+            </div>
+          </td>
+          <td>
+            <div class="users-cell">
+              ${(flag.targeted_users && flag.targeted_users.length > 0)
+                ? flag.targeted_users.map(u => `<span class="user-tag">${escapeHtml(u)}</span>`).join("")
+                : '<span class="no-users">none</span>'}
+            </div>
+          </td>
+          <td>
+            <button class="btn btn-danger" onclick="deleteFlag('${escapeHtml(flag.flag_name)}')">Delete</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    // ─── API Actions ───
+    async function toggleFlag(name, enabled) {
+      try {
+        const res = await fetch(`${API_BASE}/${encodeURIComponent(name)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_enabled: enabled }),
+        });
+        if (!res.ok) throw new Error();
+        showToast(`${name} ${enabled ? "enabled" : "disabled"}`);
+        loadFlags();
+      } catch {
+        showToast(`Failed to update ${name}`, "error");
+        loadFlags();
+      }
+    }
+
+    async function updateRollout(name, percentage) {
+      try {
+        const res = await fetch(`${API_BASE}/${encodeURIComponent(name)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rollout_percentage: parseInt(percentage) }),
+        });
+        if (!res.ok) throw new Error();
+        showToast(`${name} rollout set to ${percentage}%`);
+      } catch {
+        showToast(`Failed to update rollout for ${name}`, "error");
+        loadFlags();
+      }
+    }
+
+    async function deleteFlag(name) {
+      if (!confirm(`Delete flag "${name}"? This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`${API_BASE}/${encodeURIComponent(name)}`, { method: "DELETE" });
+        if (!res.ok) throw new Error();
+        showToast(`${name} deleted`);
+        loadFlags();
+      } catch {
+        showToast(`Failed to delete ${name}`, "error");
+      }
+    }
+
+    // ─── Create Form ───
+    document.getElementById("createForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const flag_name = document.getElementById("flagName").value.trim();
+      const description = document.getElementById("flagDesc").value.trim();
+      const rollout_percentage = parseInt(document.getElementById("flagRollout").value) || 0;
+      const usersRaw = document.getElementById("flagUsers").value.trim();
+      const targeted_users = usersRaw ? usersRaw.split(",").map(u => u.trim()).filter(Boolean) : [];
+
+      try {
+        const res = await fetch(API_BASE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ flag_name, description, rollout_percentage, targeted_users }),
+        });
+
+        if (res.status === 409) {
+          showToast(`Flag "${flag_name}" already exists`, "error");
+          return;
+        }
+        if (!res.ok) throw new Error();
+
+        showToast(`${flag_name} created`);
+        e.target.reset();
+        loadFlags();
+      } catch {
+        showToast("Failed to create flag", "error");
+      }
+    });
+
+    // ─── Helpers ───
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ─── Init ───
+    loadFlags();
+  </script>
+</body>
+</html>
